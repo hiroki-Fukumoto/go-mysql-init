@@ -1,0 +1,63 @@
+version: '3'
+services: 
+  api:
+    build:
+      context: .
+      dockerfile: ./docker/api/Dockerfile
+    volumes:
+      - ./api:/go/api
+    ports: 
+      - 8080:8080
+    tty: true
+    stdin_open: true
+    depends_on:
+      - db
+    networks:
+      - go-mysql-init-network
+
+  nginx:
+    image: nginx
+    depends_on:
+      - api
+    ports:
+      - 1234:1234
+    environment:
+      - TZ=Asia/Tokyo
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+    links:
+      - api
+    networks:
+      - go-mysql-init-network
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_DATABASE: example_db
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: pass
+    ports:
+      - 3306:3306
+    networks:
+      - go-mysql-init-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+        - PMA_ARBITRARY=1
+        - PMA_HOST=db
+        - PMA_USER=admin
+        - PMA_PASSWORD=pass
+    links:
+        - db
+    ports:
+        - 8888:80
+    volumes:
+        - /sessions
+    networks:
+      - go-mysql-init-network
+
+networks:
+  go-mysql-init-network:
